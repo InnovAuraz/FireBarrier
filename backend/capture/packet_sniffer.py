@@ -1,4 +1,5 @@
 from scapy.all import sniff, IP, TCP, UDP, conf
+from models.advanced_threats import advanced_detector
 import threading
 import time
 from models.anomaly_detector import ml_detector

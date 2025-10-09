@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from capture.packet_sniffer import packet_capture
-from security.ip_blocker import ip_blocker  # NEW
+from security.ip_blocker import ip_blocker
 
 app = FastAPI(title="AI-NGFW Backend")
 
@@ -22,7 +22,7 @@ def startup_event():
 
 @app.get("/")
 def read_root():
-    return {"message": "AI-NGFW Backend Running!"}
+    return {"message": "AI-NGFW Backend Running with Advanced Threat Detection!"}
 
 @app.get("/api/stats")
 def get_stats():
@@ -32,7 +32,8 @@ def get_stats():
         "threats_detected": int(stats['threats_detected']),
         "ml_threats": int(stats['ml_threats']),
         "ml_trained": bool(stats['ml_trained']),
-        "blocked_ips_count": len(ip_blocker.get_blocked_ips()),  # NEW
+        "blocked_ips_count": len(ip_blocker.get_blocked_ips()),
+        "threat_stats": stats.get('threat_stats', {}),  # NEW: Threat categories
         "status": "running"
     }
 
@@ -58,14 +59,37 @@ def get_threats():
             'type': threat.get('type', 'OTHER'),
             'size': int(threat.get('size', 0)),
             'detection_method': threat.get('detection_method', 'Unknown'),
-            'blocked': bool(threat.get('blocked', False)),  # NEW
+            'blocked': bool(threat.get('blocked', False)),
+            'severity': threat.get('severity', 'LOW'),  # NEW: Severity level
+            'threat_types': threat.get('threat_types', []),  # NEW: List of threat types
             'timestamp': float(threat.get('timestamp', 0))
         }
         clean_threats.append(clean_threat)
     
     return clean_threats
 
-# NEW: Blocked IPs endpoints
+# NEW: Threat Statistics by Category
+@app.get("/api/threat-stats")
+def get_threat_stats():
+    """Get detailed threat statistics by category"""
+    stats = packet_capture.get_stats()
+    threat_stats = stats.get('threat_stats', {})
+    
+    return {
+        "categories": {
+            "ddos": threat_stats.get('ddos', 0),
+            "port_scan": threat_stats.get('port_scan', 0),
+            "malware": threat_stats.get('malware', 0),
+            "sql_injection": threat_stats.get('sql_injection', 0),
+            "xss": threat_stats.get('xss', 0),
+            "command_injection": threat_stats.get('command_injection', 0),
+            "directory_traversal": threat_stats.get('directory_traversal', 0)
+        },
+        "total_advanced_threats": sum(threat_stats.values()),
+        "most_common": max(threat_stats.items(), key=lambda x: x[1])[0] if threat_stats else "none"
+    }
+
+# Blocked IPs endpoints
 @app.get("/api/blocked-ips")
 def get_blocked_ips():
     """Get list of blocked IPs"""
@@ -92,6 +116,26 @@ def unblock_ip_manual(ip_address: str):
         "success": success,
         "ip": ip_address,
         "message": f"IP {ip_address} {'unblocked' if success else 'could not be unblocked'}"
+    }
+
+@app.post("/api/unblock-all")
+def unblock_all_ips():
+    """Unblock all blocked IPs"""
+    blocked_ips = ip_blocker.get_blocked_ips().copy()
+    unblocked = []
+    failed = []
+    
+    for ip in blocked_ips:
+        success = ip_blocker.unblock_ip(ip)
+        if success:
+            unblocked.append(ip)
+        else:
+            failed.append(ip)
+    
+    return {
+        "unblocked": unblocked,
+        "failed": failed,
+        "message": f"Unblocked {len(unblocked)} IPs, failed: {len(failed)}"
     }
 
 if __name__ == "__main__":
