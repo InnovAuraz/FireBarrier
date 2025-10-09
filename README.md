@@ -68,6 +68,3 @@ See [LICENSE](LICENSE) file for details.
 
 Please read our contributing guidelines before submitting pull requests.
 
-## Security
-
-For security vulnerabilities, please email security@firebarrier.ai instead of using the issue tracker.
