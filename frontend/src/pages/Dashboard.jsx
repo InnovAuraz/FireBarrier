@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Shield, Activity, AlertTriangle, Brain, Ban } from 'lucide-react'
+import { Shield, Activity, AlertTriangle, Brain, Ban, Zap } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -11,7 +11,9 @@ const Dashboard = () => {
     total_packets: 0,
     threats_detected: 0,
     ml_threats: 0,
+    lstm_threats: 0,  // NEW
     ml_trained: false,
+    lstm_trained: false,  // NEW
     blocked_ips_count: 0,
     status: 'connecting...'
   })
@@ -99,6 +101,13 @@ const Dashboard = () => {
                 ML Active
               </Badge>
             )}
+            {/* NEW: LSTM Badge */}
+            {stats.lstm_trained && (
+              <Badge variant="secondary" className="px-3 py-1 lg:px-4 lg:py-2 text-xs lg:text-sm bg-blue-900 text-blue-300">
+                <Zap className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2" />
+                LSTM Active
+              </Badge>
+            )}
           </div>
         </div>
       </motion.div>
@@ -153,6 +162,22 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground mt-2">
                 <Brain className="w-3 h-3 inline mr-1" />
                 AI Detection
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* NEW: LSTM Threats */}
+        {stats.lstm_trained && (
+          <Card className="bg-gradient-to-br from-blue-900/20 to-blue-800/20 border-blue-500/50 hover:border-blue-500 transition-all">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">LSTM Threats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-400">{stats.lstm_threats}</div>
+              <p className="text-xs text-muted-foreground mt-2">
+                <Zap className="w-3 h-3 inline mr-1" />
+                Sequential
               </p>
             </CardContent>
           </Card>
@@ -341,6 +366,11 @@ const Dashboard = () => {
                               <Brain className="w-3 h-3 mr-1" />
                               ML
                             </Badge>
+                          ) : threat.detection_method?.includes('LSTM') ? (
+                            <Badge variant="secondary" className="bg-blue-900 text-blue-300">
+                              <Zap className="w-3 h-3 mr-1" />
+                              LSTM
+                            </Badge>
                           ) : (
                             <Badge variant="warning" className="bg-orange-900 text-orange-300">
                               Rule
@@ -370,24 +400,40 @@ const Dashboard = () => {
         </motion.div>
       )}
 
-      {/* ML Detection Badge */}
-      {stats.ml_trained && (
+      {/* ML & LSTM Detection Badges */}
+      {(stats.ml_trained || stats.lstm_trained) && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="fixed bottom-6 right-6"
+          className="fixed bottom-6 right-6 space-y-4"
         >
-          <Card className="bg-gradient-to-br from-purple-900 to-purple-800 border-purple-500 shadow-lg shadow-purple-500/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Brain className="w-6 h-6 text-purple-300 animate-pulse" />
-                <div>
-                  <p className="text-sm font-bold text-white">AI Detection Active</p>
-                  <p className="text-xs text-purple-300">{stats.ml_threats} ML Threats Detected</p>
+          {stats.ml_trained && (
+            <Card className="bg-gradient-to-br from-purple-900 to-purple-800 border-purple-500 shadow-lg shadow-purple-500/50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Brain className="w-6 h-6 text-purple-300 animate-pulse" />
+                  <div>
+                    <p className="text-sm font-bold text-white">AI Detection Active</p>
+                    <p className="text-xs text-purple-300">{stats.ml_threats} ML Threats Detected</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
+          
+          {stats.lstm_trained && (
+            <Card className="bg-gradient-to-br from-blue-900 to-blue-800 border-blue-500 shadow-lg shadow-blue-500/50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-6 h-6 text-blue-300 animate-pulse" />
+                  <div>
+                    <p className="text-sm font-bold text-white">LSTM Detection Active</p>
+                    <p className="text-xs text-blue-300">{stats.lstm_threats} Sequential Threats</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
       )}
     </div>

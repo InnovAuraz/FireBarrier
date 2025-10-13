@@ -31,9 +31,13 @@ def get_stats():
         "total_packets": int(stats['total_packets']),
         "threats_detected": int(stats['threats_detected']),
         "ml_threats": int(stats['ml_threats']),
+        "lstm_threats": int(stats.get('lstm_threats', 0)),  # NEW
         "ml_trained": bool(stats['ml_trained']),
+        "lstm_trained": bool(stats.get('lstm_stats', {}).get('is_trained', False)),  # NEW
+        "lstm_sequences_collected": int(stats.get('lstm_stats', {}).get('sequences_collected', 0)),  # NEW
+        "lstm_sequences_needed": int(stats.get('lstm_stats', {}).get('sequences_needed', 100)),  # NEW
         "blocked_ips_count": len(ip_blocker.get_blocked_ips()),
-        "threat_stats": stats.get('threat_stats', {}),  # NEW: Threat categories
+        "threat_stats": stats.get('threat_stats', {}),
         "status": "running"
     }
 
@@ -47,7 +51,6 @@ def get_threats():
     """Get recent threat packets - last 10 threats"""
     threats = packet_capture.threat_list
     
-    # Convert numpy types to Python native types
     clean_threats = []
     for threat in threats:
         clean_threat = {
@@ -58,10 +61,10 @@ def get_threats():
             'dst_port': int(threat.get('dst_port', 0)) if threat.get('dst_port') else None,
             'type': threat.get('type', 'OTHER'),
             'size': int(threat.get('size', 0)),
-            'detection_method': threat.get('detection_method', 'Unknown'),
+            'detection_method': threat.get('detection_method', 'Unknown'),  # Will include "LSTM"
             'blocked': bool(threat.get('blocked', False)),
-            'severity': threat.get('severity', 'LOW'),  # NEW: Severity level
-            'threat_types': threat.get('threat_types', []),  # NEW: List of threat types
+            'severity': threat.get('severity', 'LOW'),
+            'threat_types': threat.get('threat_types', []),  # Will include "Sequential Pattern"
             'timestamp': float(threat.get('timestamp', 0))
         }
         clean_threats.append(clean_threat)
@@ -88,6 +91,22 @@ def get_threat_stats():
         "total_advanced_threats": sum(threat_stats.values()),
         "most_common": max(threat_stats.items(), key=lambda x: x[1])[0] if threat_stats else "none"
     }
+@app.get("/api/lstm-stats")
+def get_lstm_stats():
+    """Get detailed LSTM training and detection statistics"""
+    stats = packet_capture.get_stats()
+    lstm_stats = stats.get('lstm_stats', {})
+    
+    return {
+        "is_trained": lstm_stats.get('is_trained', False),
+        "sequences_collected": lstm_stats.get('sequences_collected', 0),
+        "sequences_needed": lstm_stats.get('sequences_needed', 100),
+        "sequence_length": lstm_stats.get('sequence_length', 10),
+        "training_progress": min(100, int((lstm_stats.get('sequences_collected', 0) / 100) * 100)),
+        "lstm_threats_detected": int(stats.get('lstm_threats', 0)),
+        "status": "trained" if lstm_stats.get('is_trained', False) else "collecting_data"
+    }
+
 
 # Blocked IPs endpoints
 @app.get("/api/blocked-ips")
