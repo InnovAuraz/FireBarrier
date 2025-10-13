@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow info messages
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -151,7 +153,7 @@ class LSTMThreatDetector:
             
             prediction = self.model.predict(sequence, verbose=0)[0][0]
             
-            is_threat = prediction > 0.7
+            is_threat = prediction > 0.5  # Threshold can be adjusted
             
             if is_threat:
                 print(f"🔴 LSTM detected threat! Confidence: {prediction:.2%}")

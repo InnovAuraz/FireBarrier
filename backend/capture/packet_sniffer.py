@@ -34,7 +34,7 @@ class PacketCapture:
         self.is_running = False
         self.training_done = False
         self.auto_block_enabled = True
-        self.threat_threshold = 3
+        self.threat_threshold = 10
         self.ip_threat_count = {}
         
         # NEW: Threat statistics by category

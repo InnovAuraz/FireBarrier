@@ -1,10 +1,21 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import uvicorn
 from capture.packet_sniffer import packet_capture
 from security.ip_blocker import ip_blocker
 
-app = FastAPI(title="AI-NGFW Backend")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup/shutdown"""
+    # Startup
+    packet_capture.start_capture()
+    yield
+    # Shutdown (cleanup if needed in future)
+
+app = FastAPI(title="AI-NGFW Backend", lifespan=lifespan)
+
 
 # CORS
 app.add_middleware(
@@ -15,14 +26,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Start packet capture when app starts
-@app.on_event("startup")
-def startup_event():
-    packet_capture.start_capture()
 
 @app.get("/")
 def read_root():
     return {"message": "AI-NGFW Backend Running with Advanced Threat Detection!"}
+
 
 @app.get("/api/stats")
 def get_stats():
@@ -31,20 +39,22 @@ def get_stats():
         "total_packets": int(stats['total_packets']),
         "threats_detected": int(stats['threats_detected']),
         "ml_threats": int(stats['ml_threats']),
-        "lstm_threats": int(stats.get('lstm_threats', 0)),  # NEW
+        "lstm_threats": int(stats.get('lstm_threats', 0)),
         "ml_trained": bool(stats['ml_trained']),
-        "lstm_trained": bool(stats.get('lstm_stats', {}).get('is_trained', False)),  # NEW
-        "lstm_sequences_collected": int(stats.get('lstm_stats', {}).get('sequences_collected', 0)),  # NEW
-        "lstm_sequences_needed": int(stats.get('lstm_stats', {}).get('sequences_needed', 100)),  # NEW
+        "lstm_trained": bool(stats.get('lstm_stats', {}).get('is_trained', False)),
+        "lstm_sequences_collected": int(stats.get('lstm_stats', {}).get('sequences_collected', 0)),
+        "lstm_sequences_needed": int(stats.get('lstm_stats', {}).get('sequences_needed', 100)),
         "blocked_ips_count": len(ip_blocker.get_blocked_ips()),
         "threat_stats": stats.get('threat_stats', {}),
         "status": "running"
     }
 
+
 @app.get("/api/packets")
 def get_packets():
     stats = packet_capture.get_stats()
     return stats['recent_packets']
+
 
 @app.get("/api/threats")
 def get_threats():
@@ -61,17 +71,17 @@ def get_threats():
             'dst_port': int(threat.get('dst_port', 0)) if threat.get('dst_port') else None,
             'type': threat.get('type', 'OTHER'),
             'size': int(threat.get('size', 0)),
-            'detection_method': threat.get('detection_method', 'Unknown'),  # Will include "LSTM"
+            'detection_method': threat.get('detection_method', 'Unknown'),
             'blocked': bool(threat.get('blocked', False)),
             'severity': threat.get('severity', 'LOW'),
-            'threat_types': threat.get('threat_types', []),  # Will include "Sequential Pattern"
+            'threat_types': threat.get('threat_types', []),
             'timestamp': float(threat.get('timestamp', 0))
         }
         clean_threats.append(clean_threat)
     
     return clean_threats
 
-# NEW: Threat Statistics by Category
+
 @app.get("/api/threat-stats")
 def get_threat_stats():
     """Get detailed threat statistics by category"""
@@ -91,6 +101,8 @@ def get_threat_stats():
         "total_advanced_threats": sum(threat_stats.values()),
         "most_common": max(threat_stats.items(), key=lambda x: x[1])[0] if threat_stats else "none"
     }
+
+
 @app.get("/api/lstm-stats")
 def get_lstm_stats():
     """Get detailed LSTM training and detection statistics"""
@@ -108,7 +120,6 @@ def get_lstm_stats():
     }
 
 
-# Blocked IPs endpoints
 @app.get("/api/blocked-ips")
 def get_blocked_ips():
     """Get list of blocked IPs"""
@@ -116,6 +127,7 @@ def get_blocked_ips():
         "blocked_ips": ip_blocker.get_blocked_ips(),
         "count": len(ip_blocker.get_blocked_ips())
     }
+
 
 @app.post("/api/block-ip/{ip_address}")
 def block_ip_manual(ip_address: str):
@@ -127,6 +139,7 @@ def block_ip_manual(ip_address: str):
         "message": f"IP {ip_address} {'blocked' if success else 'could not be blocked'}"
     }
 
+
 @app.post("/api/unblock-ip/{ip_address}")
 def unblock_ip_manual(ip_address: str):
     """Manually unblock an IP"""
@@ -136,6 +149,7 @@ def unblock_ip_manual(ip_address: str):
         "ip": ip_address,
         "message": f"IP {ip_address} {'unblocked' if success else 'could not be unblocked'}"
     }
+
 
 @app.post("/api/unblock-all")
 def unblock_all_ips():
@@ -156,6 +170,7 @@ def unblock_all_ips():
         "failed": failed,
         "message": f"Unblocked {len(unblocked)} IPs, failed: {len(failed)}"
     }
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
