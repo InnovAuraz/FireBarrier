@@ -1,70 +1,131 @@
-# AI-NGFW (AI-Powered Next Generation Firewall)
+# 🛡️ FireBarrier - AI-Powered Network Firewall
 
-An advanced AI-powered network security solution that combines machine learning, federated learning, and Zero Trust architecture to provide real-time threat detection and automated response capabilities.
+[![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green.svg)](https://fastapi.tiangolo.com/) [![React](https://img.shields.io/badge/React-18.3-61DAFB.svg)](https://reactjs.org/) [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.20-orange.svg)](https://www.tensorflow.org/)
 
-## Features
+An intelligent next-generation firewall using **4-layer AI detection** to protect networks in real-time.
 
-- **Real-time Packet Capture & Analysis**: Advanced traffic monitoring using Scapy
-- **AI-Powered Threat Detection**: Machine learning models including Isolation Forest and LSTM-CNN
-- **Federated Learning**: Collaborative threat intelligence across distributed networks
-- **Zero Trust Security**: Dynamic risk scoring and adaptive access controls
-- **Automated Response**: Intelligent threat blocking and response playbooks
-- **Interactive Dashboard**: Real-time visualization and monitoring interface
-- **Encrypted Traffic Analysis**: Advanced techniques for analyzing encrypted communications
+## 🎯 Overview
 
-## Architecture
+FireBarrier combines rule-based detection, machine learning, advanced pattern matching, and LSTM neural networks to detect and block sophisticated cyber threats that traditional firewalls miss.
 
-### Backend (Python/FastAPI)
-- Packet capture and traffic analysis
-- ML-based anomaly detection
-- Federated learning coordination
-- Zero Trust risk assessment
-- Automated threat response
-- RESTful API and WebSocket endpoints
+## ✨ Key Features
 
-### Frontend (React/Vite)
-- Real-time dashboard
-- Threat visualization components
-- Performance metrics panels
-- Interactive security controls
+- 🧠 **4-Layer AI Detection**: Rule-based → ML (Isolation Forest) → Advanced Patterns → LSTM Sequential
+- ⚡ **Real-Time Protection**: <2 second response time for threat detection
+- 🔒 **Auto-Blocking**: Automatic IP blocking via Windows Firewall
+- 📊 **Live Dashboard**: Real-time threat visualization and network analytics
+- 🎯 **7 Threat Types**: DDoS, port scans, SQL injection, XSS, command injection, malware, directory traversal
 
-### Infrastructure
-- Docker containerization
-- Automated setup scripts
-- Comprehensive testing suite
-- Detailed documentation
+## 🛠️ Tech Stack
 
-## Quick Start
+**Backend**: Python 3.13 | FastAPI | Scapy | scikit-learn | TensorFlow | NumPy  
+**Frontend**: React 18 | Vite | Tailwind CSS | Recharts | Framer Motion  
+**Security**: Windows Firewall Integration | Layer 3 Packet Capture
 
-1. **Setup Environment**
-   ```bash
-   ./scripts/setup.sh
-   ```
+## 📦 Installation
 
-2. **Start Backend**
-   ```bash
-   ./scripts/run_backend.sh
-   ```
+### Prerequisites
+- Python 3.13+, Node.js 18+
+- Administrator privileges (for packet capture)
+- Windows 10/11
 
-3. **Start Frontend**
-   ```bash
-   ./scripts/run_frontend.sh
-   ```
+### Backend Setup
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install fastapi uvicorn scapy scikit-learn tensorflow numpy pandas joblib
 
-4. **Access Dashboard**
-   Open your browser to `http://localhost:3000`
+### Frontend Setup
+cd frontend
+npm install
 
-## Documentation
 
-- [Setup Instructions](docs/SETUP.md)
-- [API Documentation](docs/API.md)
-- [Demo Guide](docs/DEMO.md)
+## 🚀 Usage
 
-## License
+**Start Backend** (as Administrator):
+cd backend
+python main.py
 
-See [LICENSE](LICENSE) file for details.
+Server runs on http://localhost:8000
 
-## Contributing
+**Start Frontend**:
+cd frontend
+npm run dev
 
-Please read our contributing guidelines before submitting pull requests.
+Dashboard: http://localhost:5173
 
+## 🎯 Detection Layers
+
+| Layer | Technology | Detection | Speed |
+|-------|-----------|-----------|-------|
+| **Layer 1** | Rule-Based | Suspicious ports & packet anomalies | Instant |
+| **Layer 2** | Isolation Forest | ML anomaly detection | ~50ms |
+| **Layer 3** | Pattern Matching | 7 attack signatures (DDoS, SQL injection, etc.) | ~100ms |
+| **Layer 4** | LSTM Neural Network | Sequential patterns across 10 packets | ~200ms |
+
+## 📡 API Endpoints
+
+- `GET /api/stats` - System statistics
+- `GET /api/threats` - Recent threats (last 10)
+- `GET /api/blocked-ips` - Blocked IP list
+- `POST /api/block-ip/{ip}` - Block IP manually
+- `POST /api/unblock-ip/{ip}` - Unblock IP
+- `GET /api/lstm-stats` - LSTM training status
+
+## 📊 Dashboard Features
+
+- **Real-time Stats**: Packets, threats, ML/LSTM detections, blocked IPs
+- **Network Chart**: Live packet flow and threat visualization
+- **Threat Table**: Detailed logs with source/dest IPs, ports, detection methods
+- **IP Management**: Block/unblock functionality
+- **Threat Levels**: LOW/MEDIUM/HIGH/CRITICAL severity indicators
+
+## 🏗️ Project Structure
+
+FireBarrier/
+├── backend/
+│ ├── main.py # FastAPI server
+│ ├── capture/
+│ │ └── packet_sniffer.py # Scapy packet capture
+│ ├── models/
+│ │ ├── anomaly_detector.py # Isolation Forest ML
+│ │ ├── lstm_detector.py # LSTM sequential detection
+│ │ └── advanced_threats.py # Pattern matching
+│ └── security/
+│ └── ip_blocker.py # Windows Firewall control
+└── frontend/
+└── src/
+├── pages/
+│ └── Dashboard.jsx # Main dashboard
+└── components/ # UI components
+
+text
+
+## 🧠 How It Works
+
+1. **Capture**: Scapy captures Layer 3 network packets
+2. **Analyze**: 4 detection layers process each packet simultaneously
+3. **Learn**: ML model trains on 50 packets, LSTM on 100 sequences
+4. **Detect**: Threats flagged by severity (LOW/MEDIUM/HIGH/CRITICAL)
+5. **Block**: Auto-block after 3 threats or 1 CRITICAL threat
+6. **Display**: Real-time updates on React dashboard
+
+## 🎬 Demo
+
+Watch the 5-minute demo video: [YouTube Link](#)
+
+**Live Features**:
+- Browse websites → See ML learning patterns
+- Simulate attacks → Watch instant detection
+- Auto-blocking → IP blocked after threshold
+- Dashboard → Real-time threat visualization
+
+## 👥 Contributors
+
+**Team**: [Your Team Name]  
+**Contact**: your.email@example.com  
+**GitHub**: [github.com/yourname/FireBarrier](#)
+
+---
+
+⭐ **Star this repo if you find it useful!**
