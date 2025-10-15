@@ -83,23 +83,36 @@ Dashboard: http://localhost:5173
 ## 🏗️ Project Structure
 
 FireBarrier/
-├── backend/
-│ ├── main.py # FastAPI server
-│ ├── capture/
-│ │ └── packet_sniffer.py # Scapy packet capture
-│ ├── models/
-│ │ ├── anomaly_detector.py # Isolation Forest ML
-│ │ ├── lstm_detector.py # LSTM sequential detection
-│ │ └── advanced_threats.py # Pattern matching
-│ └── security/
-│ └── ip_blocker.py # Windows Firewall control
-└── frontend/
-└── src/
-├── pages/
-│ └── Dashboard.jsx # Main dashboard
-└── components/ # UI components
 
-text
+├── backend/
+
+│ ├── main.py # FastAPI server
+
+│ ├── capture/
+
+│ │ └── packet_sniffer.py # Scapy packet capture
+
+│ ├── models/
+
+│ │ ├── anomaly_detector.py # Isolation Forest ML
+
+│ │ ├── lstm_detector.py # LSTM sequential detection
+
+│ │ └── advanced_threats.py # Pattern matching
+
+│ └── security/
+
+│ └── ip_blocker.py # Windows Firewall control
+
+└── frontend/
+
+└── src/
+
+├── pages/
+
+│ └── Dashboard.jsx # Main dashboard
+
+└── components/ # UI components
 
 ## 🧠 How It Works
 
@@ -112,7 +125,7 @@ text
 
 ## 🎬 Demo
 
-Watch the 5-minute demo video: [YouTube Link](#)
+Watch the 5-minute demo video: [Drive Link](https://drive.google.com/drive/folders/1DQS5uOHJcRjr-oMLiVm0tMIS4FhkNxEH)
 
 **Live Features**:
 - Browse websites → See ML learning patterns
@@ -122,9 +135,8 @@ Watch the 5-minute demo video: [YouTube Link](#)
 
 ## 👥 Contributors
 
-**Team**: [Your Team Name]  
-**Contact**: your.email@example.com  
-**GitHub**: [github.com/yourname/FireBarrier](#)
+**Team**: InnovAuraz
+**GitHub**: [github.com/InnovAuraz/FireBarrier](https://www.github.com/InnovAuraz/FireBarrier)
 
 ---
 
