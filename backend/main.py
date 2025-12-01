@@ -1,9 +1,34 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from contextlib import asynccontextmanager
 import uvicorn
+import secrets
+import ipaddress
 from capture.packet_sniffer import packet_capture
 from security.ip_blocker import ip_blocker
+from config import config
+
+security = HTTPBearer(auto_error=False)
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Simple token-based auth for demo/hackathon"""
+    if not config.API_AUTH_ENABLED:
+        return True
+    
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization header"
+        )
+    
+    if not secrets.compare_digest(credentials.credentials, config.API_SECRET_KEY):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid token"
+        )
+    
+    return True
 
 
 @asynccontextmanager
@@ -20,7 +45,7 @@ app = FastAPI(title="AI-NGFW Backend", lifespan=lifespan)
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,15 +60,21 @@ def read_root():
 @app.get("/api/stats")
 def get_stats():
     stats = packet_capture.get_stats()
+    cnn_stats = stats.get('cnn_stats', {})
+    
     return {
         "total_packets": int(stats['total_packets']),
         "threats_detected": int(stats['threats_detected']),
         "ml_threats": int(stats['ml_threats']),
         "lstm_threats": int(stats.get('lstm_threats', 0)),
+        "cnn_threats": int(stats.get('cnn_threats', 0)),
         "ml_trained": bool(stats['ml_trained']),
         "lstm_trained": bool(stats.get('lstm_stats', {}).get('is_trained', False)),
+        "cnn_trained": bool(cnn_stats.get('is_trained', False)),
         "lstm_sequences_collected": int(stats.get('lstm_stats', {}).get('sequences_collected', 0)),
         "lstm_sequences_needed": int(stats.get('lstm_stats', {}).get('sequences_needed', 100)),
+        "cnn_samples_collected": int(cnn_stats.get('samples_collected', 0)),
+        "cnn_training_progress": int(cnn_stats.get('training_progress', 0)),
         "blocked_ips_count": len(ip_blocker.get_blocked_ips()),
         "threat_stats": stats.get('threat_stats', {}),
         "status": "running"
@@ -75,6 +106,7 @@ def get_threats():
             'blocked': bool(threat.get('blocked', False)),
             'severity': threat.get('severity', 'LOW'),
             'threat_types': threat.get('threat_types', []),
+            'mitre_tactics': threat.get('mitre_tactics', []),
             'timestamp': float(threat.get('timestamp', 0))
         }
         clean_threats.append(clean_threat)
@@ -120,6 +152,34 @@ def get_lstm_stats():
     }
 
 
+@app.get("/api/cnn-stats")
+def get_cnn_stats():
+    """Get detailed CNN training and detection statistics"""
+    stats = packet_capture.get_stats()
+    cnn_stats = stats.get('cnn_stats', {})
+    
+    return {
+        "cnn_trained": cnn_stats.get('is_trained', False),
+        "samples_collected": cnn_stats.get('samples_collected', 0),
+        "samples_needed": cnn_stats.get('samples_needed', 200),
+        "training_progress": cnn_stats.get('training_progress', 0),
+        "model_parameters": cnn_stats.get('model_params', 0),
+        "cnn_threats_detected": int(stats.get('cnn_threats', 0)),
+        "status": "trained" if cnn_stats.get('is_trained', False) else "collecting_data"
+    }
+
+
+@app.get("/api/mitre-mapping")
+def get_mitre_mapping():
+    """Get MITRE ATT&CK framework mappings for detected threats"""
+    from models.advanced_threats import MITRE_MAPPING
+    return {
+        "mappings": MITRE_MAPPING,
+        "framework_version": "v14",
+        "url": "https://attack.mitre.org/"
+    }
+
+
 @app.get("/api/blocked-ips")
 def get_blocked_ips():
     """Get list of blocked IPs"""
@@ -129,9 +189,15 @@ def get_blocked_ips():
     }
 
 
-@app.post("/api/block-ip/{ip_address}")
+@app.post("/api/block-ip/{ip_address}", dependencies=[Depends(verify_token)])
 def block_ip_manual(ip_address: str):
     """Manually block an IP"""
+    # Validate IP address
+    try:
+        ipaddress.ip_address(ip_address)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid IP address format")
+    
     success = ip_blocker.block_ip(ip_address)
     return {
         "success": success,
@@ -140,9 +206,15 @@ def block_ip_manual(ip_address: str):
     }
 
 
-@app.post("/api/unblock-ip/{ip_address}")
+@app.post("/api/unblock-ip/{ip_address}", dependencies=[Depends(verify_token)])
 def unblock_ip_manual(ip_address: str):
     """Manually unblock an IP"""
+    # Validate IP address
+    try:
+        ipaddress.ip_address(ip_address)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid IP address format")
+    
     success = ip_blocker.unblock_ip(ip_address)
     return {
         "success": success,
@@ -151,7 +223,7 @@ def unblock_ip_manual(ip_address: str):
     }
 
 
-@app.post("/api/unblock-all")
+@app.post("/api/unblock-all", dependencies=[Depends(verify_token)])
 def unblock_all_ips():
     """Unblock all blocked IPs"""
     blocked_ips = ip_blocker.get_blocked_ips().copy()
@@ -173,4 +245,4 @@ def unblock_all_ips():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=config.API_HOST, port=config.API_PORT)

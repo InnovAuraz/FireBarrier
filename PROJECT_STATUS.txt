@@ -1,0 +1,597 @@
+================================================================================
+FIREBARRIER - COMPREHENSIVE PROJECT STATUS REPORT
+Generated: 2025-12-01 17:49:19
+Codebase Location: D:\FireBarrier
+Git Commit: 6b1d6da
+================================================================================
+
+SECTION 1: EXECUTIVE SUMMARY
+================================================================================
+- Total completion: ~40-45% (backend core + basic UI in place)
+- Core features: L3 packet capture, rule-based + advanced detection, Isolation Forest (basic), LSTM sequential (trainable), auto IP blocking, React dashboard
+- Critical gaps: Auth/security, config/env, TensorFlow not listed in requirements, logging/observability, tests/CI/CD, persistence/database, websocket real-time updates
+- Immediate next steps: Add env-based config, pin/verify dependencies (incl. TensorFlow), harden API (auth+validation), add structured logging + error handling; add basic unit tests/CI
+
+SECTION 2: PROJECT STRUCTURE INVENTORY
+================================================================================
+backend/
+├── main.py [Purpose: FastAPI app, endpoints, CORS, startup packet capture]
+├── config.py [Purpose: (placeholder) configuration settings]
+├── api/
+│   ├── routes.py [Purpose: (placeholder) routing module, not used]
+│   └── websocket.py [Purpose: (placeholder) real-time updates]
+├── capture/
+│   ├── packet_sniffer.py [Purpose: Layer 3 packet capture (Scapy); rule/ML/advanced/LSTM detection; auto-block]
+│   └── traffic_analyzer.py [Purpose: (placeholder) feature extraction/analysis]
+├── database/
+│   ├── db.py [Purpose: (placeholder) DB connection]
+│   └── models.py [Purpose: (placeholder) ORM models]
+├── models/
+│   ├── anomaly_detector.py [Purpose: Isolation Forest anomaly detection (scikit-learn)]
+│   ├── advanced_threats.py [Purpose: DDoS/Port scan/Malware/XSS/SQLi/Traversal/Cmd detection]
+│   ├── federated_learning.py [Purpose: (placeholder) federated learning]
+│   ├── lstm_detector.py [Purpose: LSTM-based sequential anomaly detection (TensorFlow/Keras)]
+│   ├── lstm_model.keras [Purpose: Saved LSTM model]
+│   ├── lstm_model_norm.npz [Purpose: Saved normalization params]
+│   └── zero_trust.py [Purpose: (placeholder) risk scoring/zero trust]
+├── response/
+│   ├── auto_blocker.py [Purpose: (placeholder) automated responses]
+│   └── playbooks.py [Purpose: (placeholder) SOAR playbooks]
+├── security/
+│   └── ip_blocker.py [Purpose: Windows netsh / Linux iptables IP block/unblock]
+└── utils/
+    ├── helpers.py [Purpose: (placeholder) utility functions]
+    └── logger.py [Purpose: (placeholder) logging]
+
+data/
+├── datasets/ [Purpose: (empty) future datasets]
+├── logs/ [Purpose: (empty) runtime logs]
+└── models/ [Purpose: (empty) model artifacts]
+
+docker/
+├── docker-compose.yml [Purpose: Compose backend/frontend]
+├── Dockerfile.backend [Purpose: Backend image]
+└── Dockerfile.frontend [Purpose: Frontend image]
+
+docs/
+├── API.md [Purpose: API documentation]
+├── DEMO.md [Purpose: Demo guide]
+└── SETUP.md [Purpose: Setup instructions]
+
+frontend/
+├── index.html [Purpose: SPA entry]
+├── package.json [Purpose: Frontend deps/scripts]
+├── src/
+│   ├── main.jsx [Purpose: App bootstrap]
+│   ├── App.jsx / App.css [Purpose: Root component/styles]
+│   ├── pages/
+│   │   ├── Dashboard.jsx [Purpose: Real-time stats/charts/tables]
+│   │   ├── Threats.jsx [Purpose: Threats table/filters]
+│   │   ├── BlockedIPs.jsx [Purpose: Manage blocked IPs]
+│   │   └── Analytics.jsx [Purpose: Charts/metrics]
+│   ├── components/
+│   │   ├── Sidebar.jsx [Purpose: Navigation]
+│   │   └── ui/ [Purpose: UI primitives (badge, button, card, progress)]
+│   └── utils/cn.js [Purpose: Class name helper]
+└── vite/tailwind configs [Purpose: Build/styling]
+
+scripts/
+├── run_backend.sh [Purpose: Run backend]
+├── run_frontend.sh [Purpose: Run frontend]
+├── setup.sh [Purpose: Project setup]
+└── simulate_attack.py [Purpose: (likely) traffic simulation]
+
+tests/
+├── test_capture.py [Purpose: (placeholder) capture tests]
+└── test_models.py [Purpose: (placeholder) model tests]
+
+SECTION 3: IMPLEMENTED FEATURES - DETAILED ANALYSIS
+================================================================================
+
+3.1 PACKET CAPTURE LAYER
+------------------------
+Status: COMPLETE
+Implementation Details:
+  - Technology: Scapy
+  - Layer: Layer 3 (IP packets), filter="ip"
+  - Features extracted: id, timestamp, size, src_ip, dst_ip, protocol, src_port, dst_port, type, payload, threat, detection_method, threat_types, severity, blocked
+  - File: backend/capture/packet_sniffer.py
+  - Key Functions:
+    * packet_callback(packet) - Lines [51-193]
+    * start_capture() - Lines [194-207]
+  - Dependencies: scapy==2.5.0
+  - Known Issues: None observed; capture wrapped in try/except
+  - Performance: UNKNOWN (no benchmarks logged)
+
+3.2 DETECTION LAYER - RULE-BASED
+------------------------
+Status: COMPLETE (basic heuristics)
+Implementation Details:
+  - Heuristics: suspicious ports {4444,1337,6667,23,2323}; size >1200 or <30
+  - File: backend/capture/packet_sniffer.py (simple_threat_check)
+  - Integration: Combined with ML/Advanced/LSTM in packet_callback
+  - Tuning: Hard-coded thresholds; not env-configurable
+
+3.3 DETECTION LAYER - ISOLATION FOREST
+------------------------
+Status: PARTIAL (functional, auto-train after 50 packets)
+Implementation Details:
+  - File: backend/models/anomaly_detector.py
+  - Model: scikit-learn IsolationForest(n_estimators=100, contamination=0.15, random_state=42)
+  - Features: [size, src_port, dst_port, type(0/1/2), src_ip last octet]
+  - Training: auto when total_packets == 50 (min 20 packets required)
+  - Persistence: save/load via joblib (models/isolation_forest.pkl)
+  - API Exposure: reflected in /api/stats (ml_threats, ml_trained)
+  - Known Issues: None observed; contamination hard-coded
+
+3.4 DETECTION LAYER - ADVANCED PATTERNS
+------------------------
+Threat Categories Implemented:
+  [X] DDoS Detection
+  [X] Port Scan Detection
+  [X] Malware Ports Detection
+  [X] SQL Injection Detection
+  [X] XSS Detection
+  [X] Command Injection Detection
+  [X] Directory Traversal Detection
+
+Implementation Details:
+  - File: backend/models/advanced_threats.py
+  - DDoS: threshold=100 packets/sec; window=1s (ddos_threshold, ddos_window)
+  - Port Scan: threshold=10 unique ports within 5s window
+  - Malware Ports: matches known_malware_ports {1337,31337,12345,6667,6666,4444,5555,8080}
+  - Payload: SQLi keywords; XSS script markers; directory traversal patterns; command shell terms
+  - Stats: per-category counters aggregated in PacketCapture.threat_stats
+
+3.5 DETECTION LAYER - LSTM SEQUENTIAL
+------------------------
+Model Architecture:
+  - Input Shape: (sequence_length=10, feature_dim=8)
+  - Layer 1: LSTM(64, return_sequences=True) + Dropout(0.2)
+  - Layer 2: LSTM(32) + Dropout(0.2)
+  - Dense: 16 (ReLU) + Dropout(0.2)
+  - Output: Dense(1, Sigmoid)
+  
+Training Logic:
+  - Trigger: Auto when sequences_needed==0 and total_packets % 100 == 0
+  - Features per packet: [size, src_port, dst_port, protocol, isTCP, isUDP, payload_len, time_of_day_seconds]
+  - Sequence length: 10 packets
+  - Labeling strategy: self-labeling from combined threat decision at sequence assembly time
+  
+Persistence:
+  - Model file: models/lstm_model.keras
+  - Normalization: models/lstm_model_norm.npz (means/stds)
+  - Load on startup: YES (load_model() at import)
+  
+Current Status:
+  - Training functional: YES (min_training_samples=100 sequences)
+  - Prediction functional: YES
+  - Threshold: 0.5 (adjustable)
+  - Known bugs: Normalization loading previously missing; FIX implemented (checks and saves means/stds)
+
+3.6 THREAT RESPONSE SYSTEM
+------------------------
+- File: backend/security/ip_blocker.py
+- Windows: netsh advfirewall add/delete rules (in/out) via subprocess.run(args)
+- Linux: iptables INPUT/OUTPUT DROP rules via sudo
+- Auto-block in capture: severity==CRITICAL or per-IP count >= threat_threshold (10);
+  excludes 127.0.0.1/localhost and avoids blocking 192.168.* / 10.* ranges
+
+3.7 FASTAPI BACKEND
+------------------------
+Endpoints Implemented (backend/main.py):
+  [X] GET /                   - Health/info banner
+  [X] GET /api/stats          - System stats (packets, threats, ML/LSTM status, blocked IPs, threat_stats)
+  [X] GET /api/packets        - Recent packets (last 10)
+  [X] GET /api/threats        - Recent threats (sanitized, last 10)
+  [X] GET /api/threat-stats   - Threat counts by category + most_common
+  [X] GET /api/lstm-stats     - LSTM training/detection stats
+  [X] GET /api/blocked-ips    - List/count of blocked IPs
+  [X] POST /api/block-ip/{ip} - Manually block IP
+  [X] POST /api/unblock-ip/{ip} - Manually unblock IP
+  [X] POST /api/unblock-all   - Unblock all
+  
+Lifespan Events:
+  - Startup: packet_capture.start_capture() begins background sniffing
+  - Shutdown: no-op (placeholder for cleanup)
+
+3.8 REACT FRONTEND
+------------------------
+Pages Implemented:
+  [X] Dashboard.jsx - Real-time stats, charts (Recharts), recent threats, blocked IPs, badges; polls APIs
+  [X] Threats.jsx - Threat table with filters/search; polls APIs
+  [X] BlockedIPs.jsx - View/unblock blocked IPs; polls APIs
+  [X] Analytics.jsx - Time-series charts and distributions; polls APIs
+
+Dashboard Components:
+  - Status cards: Total Packets, Threats Detected, ML Threats, LSTM Threats, Blocked IPs
+  - Charts: AreaChart (packets/threats over time)
+  - Tables: Recent threats (up to 10)
+  - Polling interval: 2 seconds
+  - API calls made: /api/stats, /api/threats, /api/blocked-ips, /api/unblock-ip/{ip}
+
+UI Components Library:
+  - components/ui: badge.jsx, button.jsx, card.jsx, progress.jsx
+  - components/Sidebar.jsx
+
+SECTION 4: CONFIGURATION & THRESHOLDS
+================================================================================
+Threat Detection Thresholds:
+  - Auto-block trigger: severity==CRITICAL or ≥10 threats per IP (packet_sniffer.py)
+  - LSTM prediction threshold: 0.5 (lstm_detector.predict_threat)
+  - Isolation Forest contamination: 0.15
+  - DDoS rate threshold: >100 packets/sec per src_ip
+  - Port scan rate threshold: ≥10 unique ports in 5s
+
+Training Triggers:
+  - Isolation Forest: auto-train at 50 packets (min 20)
+  - LSTM: trains when collected sequences reach 100 (checked every 100 packets)
+
+Network Settings:
+  - Protected IP ranges: 127.0.0.1/localhost (excluded from counting), avoid blocking 192.168.* and 10.*
+  - Malicious ports list: {1337, 31337, 12345, 6667, 6666, 4444, 5555, 8080}
+
+UI Settings:
+  - Polling interval: 2000ms
+  - Recent packets limit: 10
+  - Recent threats limit: 10
+
+SECTION 5: DEPENDENCIES AUDIT
+================================================================================
+
+Backend (requirements.txt):
+  - Python version required: Not specified (recommend >=3.10)
+  - fastapi==0.104.1 [Purpose: REST API framework]
+  - uvicorn==0.24.0 [Purpose: ASGI server]
+  - scapy==2.5.0 [Purpose: Packet capture]
+  - pyshark==0.6 [Purpose: Packet parsing via tshark (unused currently)]
+  - python-dotenv==1.0.0 [Purpose: Env config (not yet used)]
+  - sqlalchemy==2.0.23 [Purpose: DB ORM (not used yet)]
+  - websockets==12.0 [Purpose: Realtime (websocket module placeholder)]
+  - scikit-learn==1.6.1 [Purpose: Isolation Forest]
+  - numpy==1.26.2 [Purpose: Arrays/numerics]
+  - pandas==2.1.4 [Purpose: Data frames (unused currently)]
+  - joblib==1.3.2 [Purpose: Model persistence]
+  - MISSING: tensorflow/keras [Purpose: LSTM model; required by lstm_detector.py]
+
+Frontend (package.json):
+  - react==19.1.1, react-dom==19.1.1 [SPA]
+  - react-router-dom==7.9.3 [Routing]
+  - recharts==3.2.1 [Charts]
+  - framer-motion==12.23.22 [Animations]
+  - tailwindcss==3.4.1, tailwind-merge==3.3.1, clsx==2.1.1 [Styling]
+  - class-variance-authority==0.7.1 [Design tokens]
+  - vite==7.1.7, @vitejs/plugin-react==5.0.4 [Build/dev]
+  - eslint + plugins [Linting]
+
+SECTION 6: DATA FLOW ANALYSIS
+================================================================================
+Step 1: Packet Capture
+  File: backend/capture/packet_sniffer.py
+  Function: sniff(filter="ip", prn=packet_callback)
+  Output: Raw Scapy packet
+  ↓
+
+Step 2: Feature Extraction
+  Function: packet_callback()
+  Output: packet_info dict (id, timestamp, size, src/dst IP, ports, type, payload)
+  ↓
+
+Step 3: Rule-Based Check
+  Function: simple_threat_check()
+  Output: Boolean (rule_threat)
+  ↓
+
+Step 4: Isolation Forest
+  Function: ml_detector.is_anomaly(packet_info)
+  Output: Boolean (ml_threat) if trained; else default safe
+  ↓
+
+Step 5: Advanced Threats
+  Function: advanced_detector.analyze_packet(packet_info)
+  Output: is_threat, category list, severity; stats updated per category
+  ↓
+
+Step 6: LSTM Sequential
+  Functions: add_packet_sequence(); predict_threat() if trained
+  Output: Boolean (lstm_threat); sequences collected for training
+  ↓
+
+Step 7: Decision & Auto-Block
+  Logic: Combine rule/ML/advanced/LSTM; compute severity; block on CRITICAL or per-IP ≥10 (avoid RFC1918)
+  Output: Append to threat_list/recent packets; update counters
+  ↓
+
+Step 8: Stats Exposure
+  File: backend/main.py /api/* endpoints
+  Output: JSON stats/threats/blocked IPs
+  ↓
+
+Step 9: Dashboard Display
+  Component: Dashboard.jsx / Threats.jsx / BlockedIPs.jsx / Analytics.jsx
+  Data source: /api/stats, /api/threats, /api/blocked-ips
+  Refresh: Every 2 seconds
+
+SECTION 7: MISSING FEATURES - GAP ANALYSIS
+================================================================================
+
+7.1 FROM ADVANCED PROBLEM STATEMENT
+------------------------------------
+
+[ ] ENCRYPTED TRAFFIC ANALYSIS
+  Required:
+    - TLS 1.3 metadata extraction
+    - QUIC protocol support
+    - CNN for encrypted traffic classification
+    - Statistical flow analysis
+  Current Status: NOT IMPLEMENTED
+  Impact: Cannot analyze majority of modern traffic
+  Files to create: backend/models/encrypted_analyzer.py
+  Dependencies needed: pyshark (present), plus deep learning libs
+  Estimated effort: 3-4 weeks
+
+[ ] ZERO TRUST ARCHITECTURE
+  Required:
+    - Risk-based authentication (RBA)
+    - Continuous verification
+    - Micro-segmentation
+    - Device posture checking
+    - Behavioral biometrics
+  Current Status: NOT IMPLEMENTED (zero_trust.py placeholder)
+  Impact: Missing core NIST SP 800-207 compliance
+  Files to create: backend/security/zero_trust.py, backend/security/risk_scorer.py
+  Estimated effort: 2-3 weeks
+
+[ ] FEDERATED LEARNING
+  Required:
+    - TensorFlow Federated integration
+    - Multi-site model aggregation
+    - Differential privacy
+    - Secure communication protocol
+  Current Status: NOT IMPLEMENTED (placeholder only)
+  Impact: No collaborative threat intelligence
+  Files to create: backend/federated/client.py, backend/federated/aggregator.py
+  Estimated effort: 6-8 weeks
+
+[ ] SOAR INTEGRATION
+  Required:
+    - Playbook execution engine
+    - MITRE ATT&CK mapping
+    - SIEM integration (Splunk, ELK)
+    - Ticketing system integration
+    - Automated remediation workflows
+  Current Status: NOT IMPLEMENTED (playbooks placeholder)
+  Impact: No orchestrated incident response
+  Files to create: backend/soar/playbooks.py, backend/integrations/
+  Estimated effort: 2 weeks
+
+[ ] REINFORCEMENT LEARNING
+  Required:
+    - DQN/PPO for rule optimization
+    - Reward function design
+    - Simulation environment
+    - Safe deployment pipeline
+  Current Status: NOT IMPLEMENTED
+  Impact: Manual threshold tuning required
+  Files to create: backend/models/rl_optimizer.py
+  Estimated effort: 4-6 weeks
+
+[ ] ADVANCED VISUALIZATION
+  Required:
+    - Attack graph rendering (D3.js/Cytoscape)
+    - Anomaly heatmaps
+    - Threat correlation matrices
+    - MITRE ATT&CK Navigator integration
+    - Predictive analytics charts
+  Current Status: Basic charts only (Recharts)
+  Impact: Limited operational insights
+  Files to modify: frontend/src/pages/Analytics.jsx
+  Dependencies: d3, cytoscape
+  Estimated effort: 2 weeks
+
+7.2 INFRASTRUCTURE GAPS
+-----------------------
+[ ] Docker containerization (Dockerfiles/compose exist; images/config not verified)
+[ ] Kubernetes deployment manifests
+[ ] CI/CD pipeline (GitHub Actions)
+[ ] Environment-based configuration (.env)
+[ ] Logging framework (structured logs)
+[ ] Monitoring (Prometheus/Grafana)
+[ ] Authentication/Authorization
+[ ] Rate limiting
+[ ] Input validation on all endpoints
+[ ] Unit tests
+[ ] Integration tests
+[ ] Load testing
+
+SECTION 8: TECHNICAL DEBT
+================================================================================
+
+Hard-coded Values:
+  - backend/capture/packet_sniffer.py:37 -> threat_threshold = 10 [Should be env var]
+  - Frontend polling: 2000ms in multiple pages [Make configurable]
+  - Advanced thresholds (ddos/scan) hard-coded in advanced_threats.py
+
+Error Handling Gaps:
+  - API routes lack try/except (rely on happy path)
+  - No global exception handler or error responses
+
+Security Concerns:
+  - No authentication on API endpoints
+  - No input validation for IP addresses
+  - Potential privilege requirements for firewall commands
+
+Performance Bottlenecks:
+  - Synchronous LSTM inference within packet_callback (may block under load)
+  - Scapy sniffing in Python (limited throughput, no batching)
+  - In-memory lists for packets/threats (no persistence/backpressure)
+
+Code Quality Issues:
+  - Multiple placeholders (config, db, utils, response, websocket)
+  - Mixed concerns inside packet_callback (monolithic function)
+  - Lack of typing and docstrings across modules
+
+SECTION 9: TESTING STATUS
+================================================================================
+
+Unit Tests: 2 files
+  - tests/test_capture.py (placeholder)
+  - tests/test_models.py (placeholder)
+
+Integration Tests: 0 files
+
+Test Coverage: UNKNOWN
+
+Manual Testing Performed:
+  - Dashboard polling against /api/* endpoints
+  - Manual unblock via /api/unblock-ip/{ip}
+
+Testing Gaps:
+  - No tests for LSTM training/prediction
+  - No tests for Windows/Linux firewall integrations
+  - No endpoint contract tests
+  - No frontend component or e2e tests
+
+SECTION 10: PERFORMANCE BENCHMARKS
+================================================================================
+
+Current Measured Performance:
+  - Packet capture rate: UNKNOWN
+  - Detection latency: UNKNOWN (LSTM inference synchronous)
+  - Throughput: UNKNOWN (Scapy typically << 1 Gbps)
+  - False positive rate: UNKNOWN (needs tuning)
+  - Dashboard update latency: 2 seconds (polling interval)
+
+Performance Targets (from problem statement):
+  - Required throughput: ≥40 Gbps
+  - Required latency: <1ms
+  - Current gap: Orders of magnitude below target (architecture change required)
+
+Optimization Opportunities:
+  - Offload LSTM inference to worker/process pool; batch predictions
+  - Async packet processing queue; move sniff callback to enqueue-only
+  - Native packet capture (DPDK/libpcap) or compiled datapath for performance
+  - Persist state in DB; backpressure and retention policies
+  - Vectorize feature extraction; reduce per-packet overhead
+
+SECTION 11: QUICK WINS - PRIORITY ENHANCEMENTS
+================================================================================
+
+1. [LOW EFFORT, HIGH IMPACT] Env-based configuration
+   - Create .env and load via python-dotenv
+   - Externalize thresholds (auto-block, ddos/scan, polling)
+   - Estimated time: 2-3 hours
+   - Files: backend/config.py, backend/main.py, packet_sniffer.py, advanced_threats.py, frontend env
+
+2. [LOW EFFORT, HIGH IMPACT] Dependency correctness
+   - Add tensorflow (CPU) to requirements; gate LSTM if unavailable
+   - Estimated time: 1 hour
+   - Files: backend/requirements.txt, lstm_detector.py (graceful fallback)
+
+3. [LOW EFFORT, MEDIUM IMPACT] Error handling & structured logging
+   - Add exception handlers; use loguru/structlog
+   - Estimated time: 6-8 hours
+   - Files: backend/main.py, capture/models/security modules
+
+4. [LOW EFFORT, MEDIUM IMPACT] Basic auth token for API
+   - Protect /api/block-ip/* and /api/unblock-*
+   - Estimated time: 3-4 hours
+   - Files: backend/main.py (FastAPI security deps)
+
+5. [LOW EFFORT, MEDIUM IMPACT] Unit tests scaffold + CI
+   - Add pytest + minimal tests; GitHub Actions workflow
+   - Estimated time: 6-8 hours
+   - Files: tests/, .github/workflows/ci.yml
+
+6. [MEDIUM EFFORT, HIGH IMPACT] Async pipeline for detection
+   - Queue + worker for ML/LSTM to avoid callback blocking
+   - Estimated time: 1-2 days
+   - Files: capture pipeline, lstm_detector
+
+7. [LOW EFFORT, MEDIUM IMPACT] API schema/docs
+   - Add pydantic models + /docs polish
+   - Estimated time: 3-4 hours
+
+SECTION 12: PRODUCTION READINESS CHECKLIST
+================================================================================
+
+Scalability: 2/10
+  [X] Can handle current dev load
+  [ ] Load tested for enterprise traffic
+  [ ] Horizontal scaling capability
+  [ ] Database backend for persistence
+
+Reliability: 3/10
+  [ ] Graceful error recovery
+  [ ] Health check endpoints
+  [ ] Automatic restart on crash (supervision)
+
+Security: 1/10
+  [ ] Authentication implemented
+  [ ] Authorization/RBAC
+  [ ] Input validation
+  [ ] Rate limiting
+
+Observability: 1/10
+  [ ] Structured logging
+  [ ] Metrics collection (Prometheus)
+  [ ] Distributed tracing
+  [ ] Alerting rules
+
+Deployment: 4/10
+  [X] Installation documentation
+  [ ] Docker support verified end-to-end
+  [ ] Kubernetes manifests
+  [ ] CI/CD pipeline
+
+SECTION 13: RECOMMENDED NEXT STEPS
+================================================================================
+
+IMMEDIATE (This Week):
+  1. Add env-based configuration (backend/config.py; wire to packet_sniffer.py, advanced_threats.py, main.py) — 3h
+  2. Fix dependencies (add tensorflow to requirements; guard LSTM load) — 1-2h
+  3. Implement basic auth + IP input validation for block/unblock endpoints (main.py) — 4h
+
+SHORT-TERM (Next 2-4 Weeks):
+  1. Implement encrypted traffic analysis
+     - Create backend/models/encrypted_analyzer.py
+     - Add TLS metadata extraction (pyshark/tshark)
+     - Train CNN on encrypted flow features
+     - Add /api/encrypted-stats endpoint
+     - Update Analytics.jsx with encrypted traffic panel
+     Estimated effort: 3-4 weeks
+
+  2. Add Zero Trust components
+     - backend/security/zero_trust.py (risk scoring, posture, micro-seg)
+     - Session/context evaluation middleware in FastAPI
+     - UI indicators for risk levels
+     Estimated effort: 2-3 weeks
+
+  3. Async detection pipeline
+     - Queue-based processing; worker for ML/LSTM
+     - Bench and set SLOs
+     Estimated effort: 1-2 weeks
+
+LONG-TERM (1-3 Months):
+  1. Federated learning infrastructure (client/aggregator, DP/privacy)
+  2. Full SOAR platform integration (playbooks, SIEM, tickets)
+  3. Performance optimization (native capture/C++ extensions, batching)
+
+SECTION 14: KNOWN ISSUES & BUGS
+================================================================================
+Issue #1: LSTM normalization persistence/availability
+  Status: FIXED (code now saves/loads means/stds; runtime check added)
+  Description: Prediction may fail or be inconsistent without normalization parameters
+  Resolution: Save/load normalization .npz with model; fallback compute if missing
+
+Issue #2: TensorFlow missing in backend requirements
+  Status: OPEN
+  Description: lstm_detector.py imports tensorflow/keras, but requirements.txt does not include tensorflow
+  Impact: LSTM load/train/predict fails in clean environment
+  Proposed fix: Add tensorflow>=2.14 (CPU) to requirements; allow runtime fallback if unavailable
+
+================================================================================
+END OF REPORT
+Total Completion Estimate: ~45%
+Last Updated: 2025-12-01 17:49:19
+================================================================================

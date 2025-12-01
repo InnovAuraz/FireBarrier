@@ -1,18 +1,65 @@
 from collections import defaultdict
 import time
 from typing import Dict, List
+from config import config
+
+# MITRE ATT&CK Framework Mapping
+MITRE_MAPPING = {
+    'ddos': {
+        'tactic': 'Impact',
+        'technique': 'T1498',
+        'name': 'Network Denial of Service',
+        'url': 'https://attack.mitre.org/techniques/T1498/'
+    },
+    'port_scan': {
+        'tactic': 'Discovery',
+        'technique': 'T1046',
+        'name': 'Network Service Discovery',
+        'url': 'https://attack.mitre.org/techniques/T1046/'
+    },
+    'sql_injection': {
+        'tactic': 'Initial Access',
+        'technique': 'T1190',
+        'name': 'Exploit Public-Facing Application',
+        'url': 'https://attack.mitre.org/techniques/T1190/'
+    },
+    'xss': {
+        'tactic': 'Initial Access',
+        'technique': 'T1190',
+        'name': 'Exploit Public-Facing Application',
+        'url': 'https://attack.mitre.org/techniques/T1190/'
+    },
+    'command_injection': {
+        'tactic': 'Execution',
+        'technique': 'T1059',
+        'name': 'Command and Scripting Interpreter',
+        'url': 'https://attack.mitre.org/techniques/T1059/'
+    },
+    'directory_traversal': {
+        'tactic': 'Discovery',
+        'technique': 'T1083',
+        'name': 'File and Directory Discovery',
+        'url': 'https://attack.mitre.org/techniques/T1083/'
+    },
+    'malware': {
+        'tactic': 'Command and Control',
+        'technique': 'T1571',
+        'name': 'Non-Standard Port',
+        'url': 'https://attack.mitre.org/techniques/T1571/'
+    }
+}
 
 class AdvancedThreatDetector:
     def __init__(self):
         # DDoS Detection
         self.connection_tracker = defaultdict(list)
-        self.ddos_threshold = 100
-        self.ddos_window = 1
+        self.ddos_threshold = config.DDOS_THRESHOLD
+        self.ddos_window = config.DDOS_WINDOW
         
         # Port Scan Detection
         self.port_scanner = defaultdict(set)
-        self.port_scan_threshold = 10
-        self.port_scan_window = 5
+        self.port_scan_threshold = config.PORT_SCAN_THRESHOLD
+        self.port_scan_window = config.PORT_SCAN_WINDOW
         self.port_scan_timestamps = defaultdict(float)
         
         # Known malicious ports
@@ -179,11 +226,24 @@ class AdvancedThreatDetector:
                     max_severity = payload_result['severity']
         
         if threats:
+            # Map threats to MITRE ATT&CK framework
+            mitre_tactics = []
+            threat_categories = set()
+            
+            for threat in threats:
+                category = threat.get('category')
+                if category:
+                    threat_categories.add(category)
+                    if category in MITRE_MAPPING:
+                        mitre_tactics.append(MITRE_MAPPING[category])
+            
             return {
                 'is_threat': True,
                 'threats': threats,
                 'severity': max_severity,
-                'threat_count': len(threats)
+                'threat_count': len(threats),
+                'mitre_tactics': mitre_tactics,
+                'categories': list(threat_categories)
             }
         
         return {'is_threat': False}

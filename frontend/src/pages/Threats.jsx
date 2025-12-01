@@ -219,8 +219,8 @@ const Threats = () => {
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Destination IP</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Port</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Type</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Size</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Detection</th>
+                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">MITRE ATT&CK</th>
                       <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
                     </tr>
                   </thead>
@@ -252,9 +252,6 @@ const Threats = () => {
                           <span className="text-sm">{threat.type || 'OTHER'}</span>
                         </td>
                         <td className="p-4">
-                          <span className="text-sm text-muted-foreground">{threat.size} bytes</span>
-                        </td>
-                        <td className="p-4">
                           {threat.detection_method === 'ML' ? (
                             <Badge variant="secondary" className="bg-purple-900 text-purple-300">
                               <Brain className="w-3 h-3 mr-1" />
@@ -265,6 +262,24 @@ const Threats = () => {
                               Rule
                             </Badge>
                           )}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-wrap gap-1">
+                            {threat.mitre_tactics && threat.mitre_tactics.length > 0 ? (
+                              threat.mitre_tactics.map((tactic, i) => (
+                                <Badge 
+                                  key={i} 
+                                  variant="outline" 
+                                  className="text-xs border-cyan-500 text-cyan-400"
+                                  title={`${tactic.tactic}: ${tactic.name}`}
+                                >
+                                  {tactic.technique}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-4">
                           {threat.blocked ? (

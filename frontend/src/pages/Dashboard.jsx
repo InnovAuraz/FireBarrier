@@ -11,9 +11,11 @@ const Dashboard = () => {
     total_packets: 0,
     threats_detected: 0,
     ml_threats: 0,
-    lstm_threats: 0,  // NEW
+    lstm_threats: 0,
+    cnn_threats: 0,  // NEW: Layer 5
     ml_trained: false,
-    lstm_trained: false,  // NEW
+    lstm_trained: false,
+    cnn_trained: false,  // NEW
     blocked_ips_count: 0,
     status: 'connecting...'
   })
@@ -108,6 +110,13 @@ const Dashboard = () => {
                 LSTM Active
               </Badge>
             )}
+            {/* NEW: CNN Badge */}
+            {stats.cnn_trained && (
+              <Badge variant="secondary" className="px-3 py-1 lg:px-4 lg:py-2 text-xs lg:text-sm bg-purple-900 text-purple-300">
+                <Brain className="w-3 h-3 lg:w-4 lg:h-4 mr-1 lg:mr-2" />
+                CNN Active
+              </Badge>
+            )}
           </div>
         </div>
       </motion.div>
@@ -178,6 +187,22 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground mt-2">
                 <Zap className="w-3 h-3 inline mr-1" />
                 Sequential
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* NEW: CNN Threats */}
+        {stats.cnn_trained && (
+          <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/20 border-purple-500/50 hover:border-purple-500 transition-all">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">CNN Threats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-400">{stats.cnn_threats}</div>
+              <p className="text-xs text-muted-foreground mt-2">
+                <Brain className="w-3 h-3 inline mr-1" />
+                Pattern Detection
               </p>
             </CardContent>
           </Card>
@@ -371,6 +396,11 @@ const Dashboard = () => {
                               <Zap className="w-3 h-3 mr-1" />
                               LSTM
                             </Badge>
+                          ) : threat.detection_method?.includes('CNN') ? (
+                            <Badge variant="secondary" className="bg-purple-900 text-purple-300">
+                              <Brain className="w-3 h-3 mr-1" />
+                              CNN
+                            </Badge>
                           ) : (
                             <Badge variant="warning" className="bg-orange-900 text-orange-300">
                               Rule
@@ -400,8 +430,8 @@ const Dashboard = () => {
         </motion.div>
       )}
 
-      {/* ML & LSTM Detection Badges */}
-      {(stats.ml_trained || stats.lstm_trained) && (
+      {/* ML & LSTM & CNN Detection Badges */}
+      {(stats.ml_trained || stats.lstm_trained || stats.cnn_trained) && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -429,6 +459,20 @@ const Dashboard = () => {
                   <div>
                     <p className="text-sm font-bold text-white">LSTM Detection Active</p>
                     <p className="text-xs text-blue-300">{stats.lstm_threats} Sequential Threats</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {stats.cnn_trained && (
+            <Card className="bg-gradient-to-br from-violet-900 to-violet-800 border-violet-500 shadow-lg shadow-violet-500/50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Brain className="w-6 h-6 text-violet-300 animate-pulse" />
+                  <div>
+                    <p className="text-sm font-bold text-white">CNN Detection Active</p>
+                    <p className="text-xs text-violet-300">{stats.cnn_threats} Pattern Threats</p>
                   </div>
                 </div>
               </CardContent>

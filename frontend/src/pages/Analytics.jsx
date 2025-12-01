@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { BarChart3, TrendingUp, Activity, PieChart as PieChartIcon } from 'lucide-react'
+import { BarChart3, TrendingUp, Activity, PieChart as PieChartIcon, Brain } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
+import { Progress } from '../components/ui/progress'
 import { 
   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
@@ -15,14 +16,30 @@ const Analytics = () => {
     blocked_ips_count: 0
   })
 
+  const [cnnStats, setCnnStats] = useState({
+    cnn_trained: false,
+    samples_collected: 0,
+    samples_needed: 200,
+    training_progress: 0,
+    model_parameters: 0,
+    cnn_threats_detected: 0
+  })
+
   const [historicalData, setHistoricalData] = useState([])
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/stats')
-        const data = await response.json()
+        const [statsRes, cnnRes] = await Promise.all([
+          fetch('http://localhost:8000/api/stats'),
+          fetch('http://localhost:8000/api/cnn-stats')
+        ])
+        
+        const data = await statsRes.json()
+        const cnnData = await cnnRes.json()
+        
         setStats(data)
+        setCnnStats(cnnData)
         
         // Add to historical data
         setHistoricalData(prev => {
@@ -303,11 +320,79 @@ const Analytics = () => {
         </motion.div>
       </div>
 
-      {/* System Summary */}
+      {/* CNN Training Progress */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
+        className="mb-4 lg:mb-6"
+      >
+        <Card className="bg-gradient-to-br from-purple-900/20 to-purple-800/20 border-purple-500/50">
+          <CardHeader>
+            <CardTitle className="text-purple-400 flex items-center gap-2">
+              <Brain className="w-5 h-5" />
+              CNN Training Progress
+            </CardTitle>
+            <CardDescription>Convolutional Neural Network status and metrics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Samples Collected</span>
+                  <span className="text-sm font-medium text-purple-300">
+                    {cnnStats.samples_collected}/{cnnStats.samples_needed}
+                  </span>
+                </div>
+                <Progress value={cnnStats.training_progress} className="h-2" />
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 bg-slate-800 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Status</p>
+                  <p className="text-lg font-medium text-purple-300">
+                    {cnnStats.cnn_trained ? '✅ Trained' : '🔄 Collecting Data'}
+                  </p>
+                </div>
+                <div className="p-4 bg-slate-800 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Model Size</p>
+                  <p className="text-lg font-medium text-purple-300">
+                    {cnnStats.model_parameters.toLocaleString()} params
+                  </p>
+                </div>
+                <div className="p-4 bg-slate-800 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Threats Detected</p>
+                  <p className="text-lg font-medium text-purple-300">
+                    {cnnStats.cnn_threats_detected}
+                  </p>
+                </div>
+              </div>
+              
+              {!cnnStats.cnn_trained && (
+                <div className="p-3 bg-purple-900/30 border border-purple-500/50 rounded-lg">
+                  <p className="text-sm text-purple-300">
+                    ℹ️ CNN requires {cnnStats.samples_needed} training samples. Currently at {cnnStats.training_progress}% progress.
+                  </p>
+                </div>
+              )}
+              
+              {cnnStats.cnn_trained && (
+                <div className="p-3 bg-green-900/30 border border-green-500/50 rounded-lg">
+                  <p className="text-sm text-green-300">
+                    ✨ CNN model is actively detecting threats using convolutional pattern analysis!
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* System Summary */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
       >
         <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
           <CardHeader>
